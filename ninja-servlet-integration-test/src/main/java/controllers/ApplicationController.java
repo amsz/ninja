@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2013 the original author or authors.
+ * Copyright (C) 2012-2014 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -44,9 +44,11 @@ import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
+import ninja.exceptions.BadRequestException;
 
 import ninja.session.FlashScope;
 import ninja.session.Session;
+import ninja.utils.NinjaProperties;
 
 @Singleton
 public class ApplicationController {
@@ -71,11 +73,17 @@ public class ApplicationController {
     
     @Inject
     NinjaCache ninjaCache;
+    
+    @Inject 
+    NinjaProperties ninjaProperties;
 
     public Result index(@Request HttpServletRequest httpServletRequest,
                            @Response HttpServletResponse httpServletResponse,
                            Context context) {
+        
         logger.info("In index ");
+        logger.info("nc: " + ninjaProperties.getContextPath());
+        logger.info("co: " + context.getContextPath());
         
         // test that the injected httpservlet request and response are not null
         Preconditions.checkNotNull(httpServletRequest);
@@ -227,5 +235,27 @@ public class ApplicationController {
 
     public Result testJsonP() {
         return Results.jsonp().render("object", "value");
+    }
+    
+    public Result badRequest() {
+    
+        throw new BadRequestException("Just a test to make sure 400 bad request works :)");
+        
+    }
+    
+    public Result testReverseRouting() {
+    
+        return Results.html()
+                .render("email", "me@me.com")
+                .render("id", "100000");
+        
+    }
+    
+    public Result testGetContextPathWorks(Context context) {
+    
+        return Results.html()
+                .render("ninjaPropertiesGetContextPath", ninjaProperties.getContextPath())
+                .render("contextGetContextPath", context.getContextPath());
+        
     }
 }

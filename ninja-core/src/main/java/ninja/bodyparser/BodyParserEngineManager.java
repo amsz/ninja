@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2013 the original author or authors.
+ * Copyright (C) 2012-2014 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,11 +16,27 @@
 
 package ninja.bodyparser;
 
+import java.util.Set;
+
 import com.google.inject.ImplementedBy;
 
 @ImplementedBy(BodyParserEngineManagerImpl.class)
 public interface BodyParserEngineManager {
 
+    /**
+     * Returns a set of the registered body parser engine content types.
+     *
+     * @return the registered content types
+     */
+    Set<String> getContentTypes();
+
+    /**
+     * Find the body parser engine for the given content type
+     *
+     * @param contentType
+     *            The content type
+     * @return The body parser engine, if found
+     */
     BodyParserEngine getBodyParserEngineForContentType(String contentType);
 
 }

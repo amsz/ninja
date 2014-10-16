@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2013 the original author or authors.
+ * Copyright (C) 2012-2014 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@ package ninja.template;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Map.Entry;
 
@@ -44,9 +45,22 @@ import freemarker.template.Configuration;
 import freemarker.template.Template;
 import freemarker.template.Version;
 import java.io.Writer;
+import javax.inject.Singleton;
 import ninja.utils.NinjaConstant;
 
+@Singleton
 public class TemplateEngineFreemarker implements TemplateEngine {
+    
+    // Selection of logging library has to be done manually until Freemarker 2.4
+    // more: http://freemarker.org/docs/api/freemarker/log/Logger.html
+    static {
+        try {
+            freemarker.log.Logger.selectLoggerLibrary(freemarker.log.Logger.LIBRARY_SLF4J);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+    // end
 
     private final String FILE_SUFFIX = ".ftl.html";
 
@@ -62,6 +76,12 @@ public class TemplateEngineFreemarker implements TemplateEngine {
 
     private final TemplateEngineFreemarkerExceptionHandler templateEngineFreemarkerExceptionHandler;
 
+    private final TemplateEngineFreemarkerReverseRouteMethod templateEngineFreemarkerReverseRouteMethod;
+            
+    private final TemplateEngineFreemarkerAssetsAtMethod templateEngineFreemarkerAssetsAtMethod;
+    
+    private final TemplateEngineFreemarkerWebJarsAtMethod templateEngineFreemarkerWebJarsAtMethod;
+    
     @Inject
     public TemplateEngineFreemarker(Messages messages,
                                     Lang lang,
@@ -69,12 +89,18 @@ public class TemplateEngineFreemarker implements TemplateEngine {
                                     TemplateEngineFreemarkerExceptionHandler templateEngineFreemarkerExceptionHandler,
                                     TemplateEngineHelper templateEngineHelper,
                                     TemplateEngineManager templateEngineManager,
+                                    TemplateEngineFreemarkerReverseRouteMethod templateEngineFreemarkerReverseRouteMethod,
+                                    TemplateEngineFreemarkerAssetsAtMethod templateEngineFreemarkerAssetsAtMethod,
+                                    TemplateEngineFreemarkerWebJarsAtMethod templateEngineFreemarkerWebJarsAtMethod,
                                     NinjaProperties ninjaProperties) throws Exception {
         this.messages = messages;
         this.lang = lang;
         this.logger = logger;
         this.templateEngineFreemarkerExceptionHandler = templateEngineFreemarkerExceptionHandler;
         this.templateEngineHelper = templateEngineHelper;
+        this.templateEngineFreemarkerReverseRouteMethod = templateEngineFreemarkerReverseRouteMethod;
+        this.templateEngineFreemarkerAssetsAtMethod = templateEngineFreemarkerAssetsAtMethod;
+        this.templateEngineFreemarkerWebJarsAtMethod = templateEngineFreemarkerWebJarsAtMethod;
         
         cfg = new Configuration();
         
@@ -90,13 +116,16 @@ public class TemplateEngineFreemarker implements TemplateEngine {
         // templates may require for URL encoding and for generating META element
         // that uses http-equiv="Content-type".
         cfg.setOutputEncoding(NinjaConstant.UTF_8);
+        
+        // Ninja does the localization itself - lookup is not needed.
+        cfg.setLocalizedLookup(false);
 
         cfg.setTemplateExceptionHandler(templateEngineFreemarkerExceptionHandler);
 
         ///////////////////////////////////////////////////////////////////////
         // 1) In dev we load templates from src/java/main first, then from the
         //    classpath.
-        //    Therefire Freemarker can handle reloading of changed templates without
+        //    Therefore Freemarker can handle reloading of changed templates without
         //    the need to restart the server (e.g automatic reload of jetty:run) 
         // 2) In test and prod we never refresh templates and load them
         //    from the classpath
@@ -145,7 +174,7 @@ public class TemplateEngineFreemarker implements TemplateEngine {
             
             // Hold 20 templates as strong references as recommended by:
             // http://freemarker.sourceforge.net/docs/pgui_config_templateloading.html
-            cfg.setSetting(Configuration.CACHE_STORAGE_KEY, "strong:20, soft:250");
+            cfg.setCacheStorage(new freemarker.cache.MruCacheStorage(20, Integer.MAX_VALUE));
 
         }
         
@@ -174,8 +203,6 @@ public class TemplateEngineFreemarker implements TemplateEngine {
     public void invoke(Context context, Result result) {
 
         Object object = result.getRenderable();
-
-        ResponseStreams responseStreams = context.finalizeHeaders(result);
 
         Map map;
         // if the object is null we simply render an empty map...
@@ -224,9 +251,14 @@ public class TemplateEngineFreemarker implements TemplateEngine {
         // E.g.: ${i18n("mykey", myPlaceholderVariable)}
         //////////////////////////////////////////////////////////////////////
         map.put("i18n", new TemplateEngineFreemarkerI18nMethod(messages, context, result));
-        
-        
-        
+
+        Optional<String> requestLang = lang.getLanguage(context, Optional.of(result));
+        Locale locale = lang.getLocaleFromStringOrDefault(requestLang);
+        map.put("prettyTime", new TemplateEngineFreemarkerPrettyTimeMethod(locale));
+
+        map.put("reverseRoute", templateEngineFreemarkerReverseRouteMethod);
+        map.put("assetsAt", templateEngineFreemarkerAssetsAtMethod);
+        map.put("webJarsAt", templateEngineFreemarkerWebJarsAtMethod);
 
         ///////////////////////////////////////////////////////////////////////
         // Convenience method to translate possible flash scope keys.
@@ -257,22 +289,39 @@ public class TemplateEngineFreemarker implements TemplateEngine {
         // now we can retrieve flash cookie messages via ${flash.MESSAGE_KEY}
         map.put("flash", translatedFlashCookieMap);        
 
-
+        // Specify the data source where the template files come from.
+        // Here I set a file directory for it:
         String templateName = templateEngineHelper.getTemplateForResult(
                 context.getRoute(), result, FILE_SUFFIX);
 
-        // Specify the data source where the template files come from.
-        // Here I set a file directory for it:
+        
+        Template freemarkerTemplate = null;
+        
+        try {
+            
+            freemarkerTemplate = cfg.getTemplate(templateName);
+            
+        } catch (IOException iOException) {
+            
+            logger.error(
+                    "Error reading Freemarker Template {} ", templateName, iOException);
+            
+            throw new RuntimeException(iOException);
+        }
+        
+        
+        ResponseStreams responseStreams = context.finalizeHeaders(result);
+
         try (Writer writer = responseStreams.getWriter()) {
-
-            Template freemarkerTemplate = cfg.getTemplate(templateName);
-
-            // convert tuples:
+            
             freemarkerTemplate.process(map, writer);
 
         } catch (Exception e) {
+            
             logger.error(
-                    "Error processing Freemarker Template " + templateName, e);
+                    "Error processing Freemarker Template {} ", templateName, e);
+            
+            throw new RuntimeException(e);
             
         }
 

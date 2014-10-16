@@ -1,3 +1,19 @@
+/**
+ * Copyright (C) 2012-2014 the original author or authors.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package ninja.standalone;
 
 import com.google.inject.Injector;
@@ -9,15 +25,15 @@ import ninja.utils.NinjaMode;
 import ninja.utils.NinjaModeHelper;
 import ninja.utils.NinjaPropertiesImpl;
 import org.eclipse.jetty.server.Server;
-import org.eclipse.jetty.server.ServerConnector;
 import org.eclipse.jetty.servlet.DefaultServlet;
 import org.eclipse.jetty.servlet.ServletContextHandler;
 
 public class NinjaJetty {
     
+    public final static String COMMAND_LINE_PARAMETER_NINJA_CONTEXT = "ninja.context";
+    public final static String COMMAND_LINE_PARAMETER_NINJA_PORT = "ninja.port";
+    
     static final int DEFAULT_PORT = 8080;
-
-    static final String DEFAULT_CONTEXT_PATH = "/";
     
     Integer port;
     
@@ -40,20 +56,28 @@ public class NinjaJetty {
         int port = tryToGetPortFromSystemPropertyOrReturnDefault();
         String contextPath = tryToGetContextPathFromSystemPropertyOrReturnDefault();
         
-        NinjaJetty ninjaJetty = new NinjaJetty();
+        final NinjaJetty ninjaJetty = new NinjaJetty();
         ninjaJetty.setNinjaMode(ninjaMode);
         ninjaJetty.setPort(port);
         ninjaJetty.setNinjaContextPath(contextPath);
         
         ninjaJetty.start();
         
+        Runtime.getRuntime().addShutdownHook(new Thread() {
+            
+            @Override
+            public void run() {
+                ninjaJetty.shutdown();
+            }
+            
+        });
+        
     }
     
     public NinjaJetty() {
         
         //some sensible defaults
-        port = 8080;
-        serverUri = URI.create("http://localhost:" + port);
+        serverUri = URI.create("http://localhost:" + DEFAULT_PORT);
         ninjaMode = NinjaMode.dev;
         ninjaServletListener = new NinjaServletListener();
     }
@@ -92,15 +116,14 @@ public class NinjaJetty {
         server = new Server(port);
 
         try {
-            ServerConnector http = new ServerConnector(server);
-
-            server.addConnector(http);
+            
             context = new ServletContextHandler(server, ninjaContextPath);
-
+            
+            NinjaPropertiesImpl ninjaProperties 
+                    = new NinjaPropertiesImpl(ninjaMode);
             // We are using an embeded jetty for quick server testing. The
             // problem is that the port will change.
             // Therefore we inject the server name here:
-            NinjaPropertiesImpl ninjaProperties = new NinjaPropertiesImpl(ninjaMode);
             ninjaProperties.setProperty(NinjaConstant.serverName, serverUri.toString());
 
             ninjaServletListener.setNinjaProperties(ninjaProperties);
@@ -148,7 +171,7 @@ public class NinjaJetty {
         Integer port;
         
         try {
-            String portAsString = System.getProperty("ninja.port");
+            String portAsString = System.getProperty(COMMAND_LINE_PARAMETER_NINJA_PORT);
             port = Integer.parseInt(portAsString);
         } catch (Exception e) {
             
@@ -160,11 +183,17 @@ public class NinjaJetty {
     }
 
     public static String tryToGetContextPathFromSystemPropertyOrReturnDefault() {
+        
         try {
-            String contextPath = System.getProperty("ninja.context");
-            return contextPath != null ? contextPath : DEFAULT_CONTEXT_PATH;
+            
+            String contextPath = System.getProperty(COMMAND_LINE_PARAMETER_NINJA_CONTEXT);
+            
+            return contextPath;
+            
         } catch (Exception e) {
-            return DEFAULT_CONTEXT_PATH;
+            
+            return null;
         }
     }
+    
 }

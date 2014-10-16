@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2013 the original author or authors.
+ * Copyright (C) 2012-2014 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -275,4 +275,46 @@ public class ApplicationControllerTest extends NinjaTest {
                 ninjaTestBrowser.makeRequest(getServerAddress() + "/jsonp?callback=App.callback");
         assertEquals("App.callback({\"object\":\"value\"})", response);
     }
+    
+    @Test
+    public void testThatBadRequestWorks() {
+        String response =
+                ninjaTestBrowser.makeRequest(getServerAddress() + "/bad_request");
+        assertTrue(response.contains("bad request"));
+    }
+    
+    @Test
+    public void testThatReverseRoutingWorks() {
+        
+        String response =
+                ninjaTestBrowser.makeRequest(getServerAddress() + "/test_reverse_routing");
+    
+        assertTrue(response.contains("<li>/user/100000/me@me.com/userDashboard</li>"));
+        assertTrue(response.contains("<li>/assets/webjars/bootstrap/3.0.0/css/bootstrap.min.css</li>"));
+        assertTrue(response.contains("<li>/assets/css/custom.css</li>"));
+    }
+    
+    @Test
+    public void testGetContextPathWorks() {
+        
+        String response =
+                ninjaTestBrowser.makeRequest(getServerAddress() + "/test_get_context_path_works");
+    
+        // both should be blank. We make sure we don't get any strange "/" delimiters or so...
+        assertTrue(response.contains("<li>ninjaProperties.getContextPath(): </li>"));
+        assertTrue(response.contains("<li>context.getContextPath(): </li>"));
+    }
+    
+    
+    public void test_that_freemarker_emits_400_when_template_not_found() {
+        
+        String response =
+                ninjaTestBrowser.makeRequest(getServerAddress() + "/test_that_freemarker_emits_400_when_template_not_found");
+    
+        // both should be blank. We make sure we don't get any strange "/" delimiters or so...
+        assertTrue(response.contains("<title>400 - Bad Request.</title>"));
+        
+    }
+    
+    
 }

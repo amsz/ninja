@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2013 the original author or authors.
+ * Copyright (C) 2012-2014 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,8 +16,9 @@
 
 package ninja.template;
 
+import java.util.Set;
+
 import com.google.inject.ImplementedBy;
-import com.google.inject.Singleton;
 
 /**
  * Template engine manager. Has a number of built in template engines, and
@@ -28,8 +29,15 @@ import com.google.inject.Singleton;
 public interface TemplateEngineManager {
 
     /**
+     * Returns a set of the registered template engine content types.
+     *
+     * @return the registered content types
+     */
+    Set<String> getContentTypes();
+
+    /**
      * Find the template engine for the given content type
-     * 
+     *
      * @param contentType
      *            The content type
      * @return The template engine, if found

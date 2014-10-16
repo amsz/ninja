@@ -42,17 +42,17 @@ a restful architecture.
 Rendering the flash error and success messages is straight forward.
 
 Please note that all variables of the flash scope are prefixed with
-"flash_".
+"flash.".
 
 A simple demo of that
 
 <pre class="prettyprint"> 
-&lt;#if flash_error??&gt;
-        &lt;p class=&quot;error&quot;&gt;${flash_error}&lt;/p&gt;
+&lt;#if (flash.error)??&gt;
+        &lt;p class=&quot;error&quot;&gt;${flash.error}&lt;/p&gt;
 &lt;/#if&gt;
 
-&lt;#if flash_success??&gt;
-        &lt;p class=&quot;success&quot;&gt;${flash_success}&lt;/p&gt;
+&lt;#if (flash.success)??&gt;
+        &lt;p class=&quot;success&quot;&gt;${flash.success}&lt;/p&gt;
 &lt;/#if&gt;
 </pre>
 
@@ -77,6 +77,61 @@ Implicit variables available in templates
  * <code>${lang}</code> resolves to the language Ninja uses currently. 
  * <code>${contextPath}</code> resolves the context path of the application 
    (empty if running on root)
+
+Implicit functions available in templates
+-----------------------------------------
+
+### reverseRoute(...)
+
+Reverse route allows you to calculate a reverse route inside your templates.
+For instance via <code>${reverseRoute("controllers.ApplicationController", 
+"userDashboard", "email", email, "id", id)}</code>.
+
+First parameter is the controller name, second parameter the method name. All
+other parameters are optional and used to replace variable parts inside the route with
+appropriate values. 
+
+In the example above the user rendered the variable parts
+with <code>Results.html().render("id", 1000).render("email", "my@email.com") </code>.
+
+For a route like 
+<code>router.GET().route("/user/{id}/{email}/userDashboard").with(ApplicationController.class, "userDashboard");</code> 
+the result is: <code>/me/user/1000/my@email.com/userDashboard</code>.
+
+
+### assetsAt(...)
+
+assetsAt is a shortcut to get a reverse route for an asset of your assets directory.
+<code>${assetsAt("css/custom.css")}</code> would render
+the location of custom.css. The corresponding route could be 
+<code>router.GET().route("/assets/{fileName: .*}").with(AssetsController.class, "serveStatic");</code>.
+
+This would then result in the following output: <code>/assets/css/custom.css</code>.
+
+
+### webJarsAt(...)
+
+webJarsAt allows you to render webjar contents. For instance
+<code>${webJarsAt("bootstrap/3.0.0/css/bootstrap.min.css")}</code> would render
+a css file from a webJars jar. The corresponding route could be 
+<code>router.GET().route("/assets/webjars/{fileName: .*}").with(AssetsController.class, "serveWebJars");</code>.
+
+This would then result in the following output: <code>/assets/webjars/bootstrap/3.0.0/css/bootstrap.min.css</code>.
+
+### i18n(...)
+
+i18n allows you to render translated strings. For instance <code>${i18n(&quot;myi18nKey&quot;)}</code> allows
+you to render the value for myi18nKey in the correct language for your user.
+Please refer to chapter "internationalization" for more informations.
+
+
+### prettyTime(...)
+
+prettyTime allows you to format localized relative dates.
+<code>${prettyTime(myDate)}</code>
+
+For instance, if you had a date object that represented yesterday, prettyTime would format that as *1 day ago* in the
+preferred Locale of the request.
 
 Advanced usage of Freemarker
 ----------------------------

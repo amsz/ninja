@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2013 the original author or authors.
+ * Copyright (C) 2012-2014 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -43,6 +43,16 @@ public class WrappedContext implements Context {
     @Override
     public String getRequestUri() {
         return wrapped.getRequestUri();
+    }
+
+    @Override
+    public String getHostname() {
+        return wrapped.getHostname();
+    }
+
+    @Override
+    public String getRemoteAddr() {
+        return wrapped.getRemoteAddr();
     }
 
     @Override
@@ -140,6 +150,11 @@ public class WrappedContext implements Context {
         return wrapped.parseBody(classOfT);
     }
 
+    @Override
+    public boolean isAsync() {
+        return wrapped.isAsync();
+    }
+    
     @Override
     public void handleAsync() {
         wrapped.handleAsync();
@@ -273,6 +288,16 @@ public class WrappedContext implements Context {
     @Override
     public String getContextPath() {
         return wrapped.getContextPath();
+    }
+
+    @Override
+    public boolean isRequestJson() {
+        return wrapped.isRequestJson();
+    }
+
+    @Override
+    public boolean isRequestXml() {
+        return wrapped.isRequestXml();
     }
 
 }

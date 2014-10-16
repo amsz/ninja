@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2013 the original author or authors.
+ * Copyright (C) 2012-2014 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,7 +24,7 @@ import static org.junit.Assert.fail;
 
 import java.io.File;
 
-import javax.inject.Inject;
+import com.google.inject.Inject;
 import javax.inject.Named;
 
 import org.apache.commons.configuration.PropertiesConfiguration;
@@ -37,6 +37,10 @@ import com.google.common.base.Charsets;
 import com.google.common.io.Files;
 import com.google.inject.AbstractModule;
 import com.google.inject.Guice;
+import org.hamcrest.CoreMatchers;
+import static org.hamcrest.CoreMatchers.equalTo;
+import org.junit.Assert;
+import static org.junit.Assert.assertThat;
 
 public class NinjaPropertiesImplTest {
 

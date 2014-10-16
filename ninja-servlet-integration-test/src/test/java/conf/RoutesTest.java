@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2013 the original author or authors.
+ * Copyright (C) 2012-2014 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,6 +27,10 @@ import com.google.common.collect.Maps;
 
 import controllers.ApplicationController;
 import ninja.NinjaRouterTest;
+import org.hamcrest.CoreMatchers;
+import static org.hamcrest.CoreMatchers.containsString;
+import org.junit.Assert;
+import static org.junit.Assert.assertThat;
 
 /**
  * 
@@ -124,7 +128,50 @@ public class RoutesTest extends NinjaRouterTest {
         
         String generatedReverseRoute = router.getReverseRoute(ApplicationController.class, "userDashboard", map);
         
-        assertEquals("/user/myId/myEmail/userDashboard?paging_size=100&page=1", generatedReverseRoute);
+        assertThat(generatedReverseRoute, containsString("page=1"));
+        assertThat(generatedReverseRoute, containsString("paging_size=100"));
+        assertThat(generatedReverseRoute, containsString("/user/myId/myEmail/userDashboard?"));
+
+    }
+    
+    @Test
+    public void testReverseRoutingWithArrayAndQueryParameters() {
+        
+        startServer();
+        
+        String generatedReverseRoute = router.getReverseRoute(
+                ApplicationController.class, 
+                "userDashboard", 
+                "id","myId",
+                "email","myEmail",
+                "paging_size","100",
+                "page","1");
+
+        assertThat(generatedReverseRoute, containsString("page=1"));
+        assertThat(generatedReverseRoute, containsString("paging_size=100"));
+        assertThat(generatedReverseRoute, containsString("/user/myId/myEmail/userDashboard?"));
+    }
+    
+    
+    @Test
+    public void testReverseRoutingWithArrayAndWrongAmountOfQueryParameters() {
+        
+        startServer();
+        
+        // TEST 2: a more complex route with replacements and query parameters
+        //router.GET().route("/user/{id}/{email}/userDashboard").with(ApplicationController.class, "userDashboard");
+        Map<String, Object> map = Maps.newHashMap();
+        map.put("id","myId");
+        map.put("email","myEmail");        
+        map.put("paging_size","100");
+        map.put("page","1");
+        
+        String generatedReverseRoute = router.getReverseRoute(
+                ApplicationController.class, 
+                "userDashboard", 
+                "1", "2", "3");
+        
+        assertEquals(null, generatedReverseRoute);
 
     }
     

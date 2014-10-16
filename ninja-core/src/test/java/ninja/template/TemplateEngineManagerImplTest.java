@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2013 the original author or authors.
+ * Copyright (C) 2012-2014 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,12 +16,19 @@
 
 package ninja.template;
 
+import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
+
+import java.util.Collections;
+import java.util.List;
+
 import ninja.ContentTypes;
 import ninja.Context;
 import ninja.Result;
+import ninja.Router;
+import ninja.RouterImpl;
 import ninja.i18n.Lang;
 import ninja.i18n.LangImpl;
 import ninja.utils.LoggerProvider;
@@ -32,6 +39,7 @@ import ninja.utils.NinjaPropertiesImpl;
 import org.junit.Test;
 import org.slf4j.Logger;
 
+import com.google.common.collect.Lists;
 import com.google.inject.AbstractModule;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
@@ -74,6 +82,14 @@ public class TemplateEngineManagerImplTest {
                 ContentTypes.TEXT_HTML), instanceOf(OverrideHtmlTemplateEngine.class));
     }
 
+    @Test
+    public void testContentTypes() {
+        List<String> types = Lists.newArrayList(createTemplateEngineManager().getContentTypes());
+        Collections.sort(types);
+        assertThat(types.toString(),
+                equalTo("[application/javascript, application/json, application/xml, text/html, text/plain]"));
+    }
+
 	@Test
 	public void testGetNonExistingProducesNoNPE() {
 		TemplateEngineManager manager = createTemplateEngineManager(OverrideJsonTemplateEngine.class);
@@ -81,10 +97,12 @@ public class TemplateEngineManagerImplTest {
 	}
 
     public static abstract class MockTemplateEngine implements TemplateEngine {
+        @Override
         public void invoke(Context context, Result result) {
 
         }
 
+        @Override
         public String getSuffixOfTemplatingEngine() {
             return null;
 
@@ -120,16 +138,17 @@ public class TemplateEngineManagerImplTest {
         return Guice.createInjector(new AbstractModule() {
             @Override
             protected void configure() {
-            	
-            	bind(Logger.class).toProvider(LoggerProvider.class);  
-            	bind(Lang.class).to(LangImpl.class);
-            	
-            	bind(NinjaProperties.class).toInstance(new NinjaPropertiesImpl(NinjaMode.test));
-            	
+
+                bind(Logger.class).toProvider(LoggerProvider.class);
+                bind(Lang.class).to(LangImpl.class);
+                bind(Router.class).to(RouterImpl.class);
+
+                bind(NinjaProperties.class).toInstance(new NinjaPropertiesImpl(NinjaMode.test));
+
                 for (Class<?> clazz : toBind) {
-                	
-                    bind(clazz);                 
-                    
+
+                    bind(clazz);
+
                 }
             }
         });

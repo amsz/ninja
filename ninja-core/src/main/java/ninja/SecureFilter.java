@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2013 the original author or authors.
+ * Copyright (C) 2012-2014 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,6 +16,7 @@
 
 package ninja;
 
+import com.google.inject.Inject;
 import ninja.utils.NinjaConstant;
 
 /**
@@ -37,17 +38,24 @@ import ninja.utils.NinjaConstant;
 public class SecureFilter implements Filter {
 
     /** If a username is saved we assume the session is valid */
-    public final String USERNAME = "username";
+    public static final String USERNAME = "username";
+    
+    private final Ninja ninja;
+    
+    @Inject
+    public SecureFilter(Ninja ninja) {
+        this.ninja = ninja;
+    }
 
     @Override
     public Result filter(FilterChain chain, Context context) {
 
         // if we got no cookies we break:
-        if (context.getSessionCookie() == null
-                || context.getSessionCookie().get(USERNAME) == null) {
-
-            return Results.forbidden().html()
-                    .template(NinjaConstant.LOCATION_VIEW_FTL_HTML_FORBIDDEN);
+        if (context.getSession() == null
+                || context.getSession().get(USERNAME) == null) {
+            
+            Result result = ninja.getForbiddenResult(context);
+            return result;
 
         } else {
             return chain.next(context);

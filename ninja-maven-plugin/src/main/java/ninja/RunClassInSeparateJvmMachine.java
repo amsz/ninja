@@ -1,3 +1,19 @@
+/**
+ * Copyright (C) 2012-2014 the original author or authors.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package ninja;
 
 import java.io.BufferedReader;
@@ -8,6 +24,11 @@ import java.io.InputStreamReader;
 import java.util.List;
 
 import com.google.common.base.Joiner;
+import com.google.common.collect.Lists;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
+import ninja.standalone.NinjaJetty;
 import ninja.utils.NinjaConstant;
 
 public class RunClassInSeparateJvmMachine {
@@ -22,16 +43,21 @@ public class RunClassInSeparateJvmMachine {
     // Context path for web app.
     private String contextPath;
 
+    private String port;
+
     public RunClassInSeparateJvmMachine(
             String classNameWithMainToRun,
             List<String> classpath, 
-            String contextPath) {
+            String contextPath,
+            String port) {
 
         this.classNameWithMainToRun = classNameWithMainToRun;
 
         this.classpath = classpath;
         
         this.contextPath = contextPath;
+
+        this.port = port;
 
         // initial startup
         try {
@@ -46,7 +72,17 @@ public class RunClassInSeparateJvmMachine {
         Runtime.getRuntime().addShutdownHook(new Thread() {
             @Override
             public void run() {
+                
                 processCurrentlyActive.destroy();
+                
+                try {
+                    
+                    processCurrentlyActive.waitFor();
+                    
+                } catch (InterruptedException ex) {
+                    
+                    Logger.getLogger(RunClassInSeparateJvmMachine.class.getName()).log(Level.SEVERE, null, ex);
+                }
 
             }
         });
@@ -68,27 +104,40 @@ public class RunClassInSeparateJvmMachine {
 
     private Process startNewNinjaJetty() throws IOException,
             InterruptedException {
+        
+        List<String> commandLine = Lists.newArrayList();
+        
+        
 
         String javaHome = System.getProperty("java.home");
         String javaBin = javaHome + File.separator + "bin" + File.separator
                 + "java";
-
-        String pathSeparator = System.getProperty("path.separator");
-
-        String classpathAsString = Joiner.on(pathSeparator).join(classpath);
+        
+        commandLine.add(javaBin);
 
         String systemPropertyDevMode 
                 = "-D" + NinjaConstant.MODE_KEY_NAME + "=" + NinjaConstant.MODE_DEV;
         
-        String systemPropertyContextPath = "-Dninja.context=" + contextPath;
+        commandLine.add(systemPropertyDevMode);
+
+        String portSelection
+                = "-D" + NinjaJetty.COMMAND_LINE_PARAMETER_NINJA_PORT + "=" + port;
+
+        commandLine.add(portSelection);
         
-        ProcessBuilder builder = new ProcessBuilder(
-                javaBin, 
-                systemPropertyDevMode, 
-                systemPropertyContextPath, 
-                "-cp", 
-                classpathAsString, 
-                classNameWithMainToRun);
+        if (contextPath != null) {
+            String systemPropertyContextPath = "-Dninja.context=" + contextPath;
+            commandLine.add(systemPropertyContextPath);
+        }
+
+        String pathSeparator = System.getProperty("path.separator");
+
+        String classpathAsString = Joiner.on(pathSeparator).join(classpath);
+        commandLine.add("-cp");
+        commandLine.add(classpathAsString);
+        commandLine.add(classNameWithMainToRun);
+        
+        ProcessBuilder builder = new ProcessBuilder(commandLine);
         
         builder.directory(new File(System.getProperty(NinjaMavenPluginConstants.USER_DIR)));
 

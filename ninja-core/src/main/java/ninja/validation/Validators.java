@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2013 the original author or authors.
+ * Copyright (C) 2012-2014 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -229,6 +229,40 @@ public class Validators {
         @Override
         public Class<Number> getValidatedType() {
             return Number.class;
+        }
+    }
+
+    public static class EnumValidator implements Validator<String> {
+        private final IsEnum isEnum;
+
+        public EnumValidator(IsEnum anEnum) {
+            isEnum = anEnum;
+        }
+
+        @Override
+        public void validate(String value, String field, Validation validation) {
+            if (value != null) {
+                Enum<?>[] values = isEnum.enumClass().getEnumConstants();
+                for (Enum<?> v : values) {
+                    if (isEnum.caseSensitive()) {
+                        if (v.name().equals(value)) {
+                            return;
+                        }
+                    } else {
+                        if (v.name().equalsIgnoreCase(value)) {
+                            return;
+                        }
+                    }
+                }
+
+                validation.addFieldViolation(field, ConstraintViolation.createForFieldWithDefault(
+                        IsEnum.KEY, field, IsEnum.MESSAGE, new Object [] {value, isEnum.enumClass().getName()}));
+            }
+        }
+
+        @Override
+        public Class<String> getValidatedType() {
+            return String.class;
         }
     }
 

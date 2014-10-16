@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2013 the original author or authors.
+ * Copyright (C) 2012-2014 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -30,10 +30,9 @@ import controllers.FilterController;
 import controllers.I18nController;
 import controllers.InjectionExampleController;
 import controllers.PersonController;
+import controllers.PrettyTimeController;
 import controllers.UdpPingController;
 import controllers.UploadController;
-import ninja.Context;
-import ninja.servlet.ContextImpl;
 
 public class Routes implements ApplicationRoutes {
 
@@ -83,7 +82,9 @@ public class Routes implements ApplicationRoutes {
         router.GET().route("/flash_any").with(ApplicationController.class, "flashAny");
 
         router.GET().route("/htmlEscaping").with(ApplicationController.class, "htmlEscaping");
-
+        router.GET().route("/test_reverse_routing").with(ApplicationController.class, "testReverseRouting");
+        router.GET().route("/test_get_context_path_works").with(ApplicationController.class, "testGetContextPathWorks");
+        router.GET().route("/test_that_freemarker_emits_400_when_template_not_found").with(Results.html().template("/views/A_TEMPLATE_THAT_DOES_NOT_EXIST.ftl.html"));
         // /////////////////////////////////////////////////////////////////////
         // Json support
         // /////////////////////////////////////////////////////////////////////
@@ -92,6 +93,9 @@ public class Routes implements ApplicationRoutes {
 
         router.GET().route("/api/person.xml").with(PersonController.class, "getPersonXml");
         router.POST().route("/api/person.xml").with(PersonController.class, "postPersonXml");
+
+        router.GET().route("/api/person").with(PersonController.class, "getPersonViaContentNegotiation");
+        router.GET().route("/api/person_with_content_negotiation_fallback").with(PersonController.class, "getPersonViaContentNegotiationAndFallback");
 
         // /////////////////////////////////////////////////////////////////////
         // Form parsing support
@@ -137,6 +141,12 @@ public class Routes implements ApplicationRoutes {
         router.GET().route("/i18n/{language}").with(I18nController.class, "indexWithLanguage");
 
         // /////////////////////////////////////////////////////////////////////
+        // PrettyTime:
+        // /////////////////////////////////////////////////////////////////////
+        router.GET().route("/prettyTime").with(PrettyTimeController.class, "index");
+        router.GET().route("/prettyTime/{language}").with(PrettyTimeController.class, "indexWithLanguage");
+
+        // /////////////////////////////////////////////////////////////////////
         // Upload showcase
         // /////////////////////////////////////////////////////////////////////
         router.GET().route("/upload").with(UploadController.class, "upload");
@@ -148,6 +158,8 @@ public class Routes implements ApplicationRoutes {
         if (!ninjaProperties.isProd()) {
             router.GET().route("/_test/testPage").with(ApplicationController.class, "testPage");
         }
+
+        router.GET().route("/bad_request").with(ApplicationController.class, "badRequest");
 
         router.GET().route("/assets/webjars/{fileName: .*}").with(AssetsController.class, "serveWebJars");
         router.GET().route("/assets/{fileName: .*}").with(AssetsController.class, "serveStatic");

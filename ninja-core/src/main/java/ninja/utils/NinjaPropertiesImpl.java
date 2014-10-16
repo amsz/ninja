@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2013 the original author or authors.
+ * Copyright (C) 2012-2014 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,6 +16,7 @@
 
 package ninja.utils;
 
+import com.google.common.base.Optional;
 import java.io.File;
 import java.io.IOException;
 import java.util.Properties;
@@ -25,6 +26,7 @@ import org.apache.commons.configuration.Configuration;
 import org.apache.commons.configuration.ConfigurationConverter;
 import org.apache.commons.configuration.ConfigurationException;
 import org.apache.commons.configuration.PropertiesConfiguration;
+import org.apache.commons.configuration.reloading.FileChangedReloadingStrategy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -43,19 +45,23 @@ public class NinjaPropertiesImpl implements NinjaProperties {
             .getLogger(NinjaPropertiesImpl.class);
 
     private NinjaMode ninjaMode;
+    
+    private String contextPath = "";
 
     private final String ERROR_KEY_NOT_FOUND = "Key %s does not exist. Please include it in your application.conf. Otherwise this app will not work";
 
     /**
-     * This is the final configuration holding all information from 1.
-     * application.conf. 2. Special properties for the mode you are running on
-     * extracted from application.cof 3. An external configuration file defined
-     * by a system property and on the classpath.
+     * This is the final configuration holding all information from 
+     * 1. application.conf. 
+     * 2. Special properties for the mode you are running on extracted 
+     *    from application.conf 
+     * 3. An external configuration file defined
+     *    by a system property and on the classpath.
      */
     private CompositeConfiguration compositeConfiguration;
 
-
-    public NinjaPropertiesImpl(NinjaMode ninjaMode) {
+    public NinjaPropertiesImpl(
+            NinjaMode ninjaMode) {
         
         this.ninjaMode = ninjaMode;
 
@@ -72,7 +78,7 @@ public class NinjaPropertiesImpl implements NinjaProperties {
         Configuration prefixedDefaultConfiguration = null;
 
         // (Optional) Config set via a system property
-        Configuration externalConfiguration = null;
+        PropertiesConfiguration externalConfiguration = null;
 
         // (Optional) Config of prefixed mode corresponding to current mode (eg.
         // %test.myproperty=...)
@@ -90,6 +96,12 @@ public class NinjaPropertiesImpl implements NinjaProperties {
             // By convention it will be something like %test.myproperty
             prefixedDefaultConfiguration = defaultConfiguration.subset("%"
                     + ninjaMode.name());
+
+            // allow application.conf to be reloaded on changes in dev mode
+            if (NinjaMode.dev == ninjaMode) {
+                defaultConfiguration
+                        .setReloadingStrategy(new FileChangedReloadingStrategy());
+            }
 
         } else {
 
@@ -130,6 +142,14 @@ public class NinjaPropertiesImpl implements NinjaProperties {
                 throw new RuntimeException(errorMessage);
 
             } else {
+
+                // allow the external configuration to be reloaded at
+                // runtime based on detected file changes
+                final boolean shouldReload = Boolean.getBoolean(NINJA_EXTERNAL_RELOAD);
+                if (shouldReload) {
+                    externalConfiguration
+                            .setReloadingStrategy(new FileChangedReloadingStrategy());
+                }
 
                 // Copy special prefix of mode to parent configuration
                 // By convention it will be something like %test.myproperty
@@ -282,6 +302,7 @@ public class NinjaPropertiesImpl implements NinjaProperties {
         return (ninjaMode.equals(NinjaMode.prod));
     }
 
+    @Override
     public boolean isDev() {
         return (ninjaMode.equals(NinjaMode.dev));
     }
@@ -289,6 +310,38 @@ public class NinjaPropertiesImpl implements NinjaProperties {
     @Override
     public boolean isTest() {
         return (ninjaMode.equals(NinjaMode.test));
+    }
+    
+    /**
+     * Get the context path on which the application is running
+     * 
+     * That means:
+     * - when running on root the context path is empty
+     * - when running on context there is NEVER a trailing slash
+     * 
+     * We conform to the following rules:
+     * Returns the portion of the request URI that indicates the context of the 
+     * request. The context path always comes first in a request URI. 
+     * The path starts with a "/" character but does not end with a "/" character. 
+     * For servlets in the default (root) context, this method returns "". 
+     * The container does not decode this string.
+     * 
+     * As outlined by: http://docs.oracle.com/javaee/6/api/javax/servlet/http/HttpServletRequest.html#getContextPath()
+     * 
+     * @return the context-path with a leading "/" or "" if running on root
+     */
+    @Override
+    public String getContextPath() {
+        
+        return contextPath;
+        
+    }
+    
+    @Override
+    public void setContextPath(String contextPath) {
+        
+        this.contextPath = contextPath;
+        
     }
 
     @Override

@@ -1,6 +1,6 @@
 <!--
 
-    Copyright (C) 2013 the original author or authors.
+    Copyright (C) 2012-2014 the original author or authors.
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -25,10 +25,14 @@
     <parent>
         <groupId>org.ninjaframework</groupId>
         <artifactId>ninja</artifactId>
-        <version>3.0.0-rc3-SNAPSHOT</version>
+        <version>3.3.4-SNAPSHOT</version>
     </parent>
-    
-    <url>http://www.ninjaframework.org</url>
+
+    <organization>
+        <name>ninjaframework</name>
+        <url>http://www.ninjaframework.org</url>
+    </organization>
+
 
     <properties>
         <github.global.server>github</github.global.server>
@@ -72,6 +76,12 @@
     <dependencies>
     
         <dependency>
+            <groupId>org.ocpsoft.prettytime</groupId>
+            <artifactId>prettytime</artifactId>
+            <version>3.2.1.Final</version>
+        </dependency>
+
+        <dependency>
             <groupId>org.jsoup</groupId>
             <artifactId>jsoup</artifactId>
             <version>1.7.2</version>
@@ -87,6 +97,11 @@
         <dependency>
             <groupId>com.google.inject</groupId>
             <artifactId>guice</artifactId>
+        </dependency>
+        
+        <dependency>
+            <groupId>com.google.inject.extensions</groupId>
+            <artifactId>guice-assistedinject</artifactId>
         </dependency>
 
         <!-- We use Jackson for rendering jsons: -->

@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2013 the original author or authors.
+ * Copyright (C) 2012-2014 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,6 +23,8 @@ import ninja.utils.NinjaPropertiesImpl;
 
 import com.google.inject.Injector;
 import com.google.inject.servlet.GuiceServletContextListener;
+import ninja.utils.NinjaMode;
+import ninja.utils.NinjaModeHelper;
 
 /**
  * define in web.xml:
@@ -36,44 +38,98 @@ import com.google.inject.servlet.GuiceServletContextListener;
  */
 public class NinjaServletListener extends GuiceServletContextListener {
     
-    private NinjaBootstap ninjaBootstap;
+    private volatile NinjaBootstrap ninjaBootstrap;
 
-    NinjaPropertiesImpl ninjaProperties;
+    NinjaPropertiesImpl ninjaProperties = null;
+    
+    String contextPath;
 
-    public void setNinjaProperties(NinjaPropertiesImpl ninjaProperties) {
-        this.ninjaProperties = ninjaProperties; 
+    public synchronized void setNinjaProperties(NinjaPropertiesImpl ninjaPropertiesImpl) {
+        
+        if (this.ninjaProperties != null) {
+            
+            throw new IllegalStateException("NinjaProperties already set.");
+        
+        } else {
+        
+            this.ninjaProperties = ninjaPropertiesImpl;
+            
+        }
         
     }
 
     @Override
-    public void contextInitialized(ServletContextEvent servletContextEvent) {      
+    public void contextInitialized(ServletContextEvent servletContextEvent) { 
+        contextPath = servletContextEvent.getServletContext().getContextPath();
         super.contextInitialized(servletContextEvent);
     }
    
     @Override
     public void contextDestroyed(ServletContextEvent servletContextEvent) {
-        ninjaBootstap.shutdown();
+        ninjaBootstrap.shutdown();
         super.contextDestroyed(servletContextEvent);
     }
    
+    /**
+     * Getting the injector is done via double locking in conjuction
+     * with volatile keyword for thread safety.
+     * See also: http://en.wikipedia.org/wiki/Double-checked_locking
+     * 
+     * @return The injector for this application.
+     */
     @Override
     public Injector getInjector() {
         
-        // If Ninja is already booted and ready return the injector
-        if (ninjaBootstap != null) {
-            return ninjaBootstap.getInjector();
-        }
+        // fetch instance variable into method, so that we access the volatile
+        // global variable only once - that's better performance wise.
+        NinjaBootstrap ninjaBootstrapLocal = ninjaBootstrap;
         
-        // Otherwise create a new bootstrap and generate a new injector.
-        if (ninjaProperties != null) {
-            ninjaBootstap = new NinjaBootstap(ninjaProperties);
+        if (ninjaBootstrapLocal == null) {
+
+            synchronized(this) {
+                
+                ninjaBootstrapLocal = ninjaBootstrap;
+                
+                if (ninjaBootstrapLocal == null) {
+                    
+                    // if properties 
+                    if (ninjaProperties == null) {
+                        
+                        ninjaProperties 
+                                = new NinjaPropertiesImpl(
+                                        NinjaModeHelper.determineModeFromSystemPropertiesOrProdIfNotSet());
+                    
+                    }
+                
+                    ninjaBootstrap 
+                            = createNinjaBootstrap(ninjaProperties, contextPath);
+                    ninjaBootstrapLocal = ninjaBootstrap;
+
+                }
             
-        } else {
-            ninjaBootstap = new NinjaBootstap();
+            }
+        
         }
         
-        ninjaBootstap.boot();
-        return ninjaBootstap.getInjector();
+        return ninjaBootstrapLocal.getInjector();
+
+    }
+    
+    
+    
+    private NinjaBootstrap createNinjaBootstrap(
+        NinjaPropertiesImpl ninjaProperties,
+        String contextPath) {
+    
+         // we set the contextpath.
+        ninjaProperties.setContextPath(contextPath);
+        
+        ninjaBootstrap = new NinjaBootstrap(ninjaProperties);
+        
+        ninjaBootstrap.boot();
+        
+        return ninjaBootstrap;
+
     }
 
 }

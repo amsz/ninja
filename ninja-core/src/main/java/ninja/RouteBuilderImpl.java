@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2013 the original author or authors.
+ * Copyright (C) 2012-2014 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -61,6 +61,16 @@ class RouteBuilderImpl implements RouteBuilder {
 
     public RouteBuilderImpl OPTIONS() {
         httpMethod = "OPTIONS";
+        return this;
+    }
+    
+    public RouteBuilderImpl HEAD() {
+        httpMethod = "HEAD";
+        return this;
+    }
+        
+    public RouteBuilderImpl METHOD(String method) {
+        httpMethod = method;
         return this;
     }
 
@@ -165,6 +175,10 @@ class RouteBuilderImpl implements RouteBuilder {
         // Calculate filters
         LinkedList<Class<? extends Filter>> filters = new LinkedList<Class<? extends Filter>>();
         if(controller != null) {
+            if (controllerMethod == null) {
+                throw new IllegalStateException(
+                        String.format("Route '%s' does not have a controller method", uri));
+            }
             filters.addAll(calculateFiltersForClass(controller));
             FilterWith filterWith = controllerMethod
                     .getAnnotation(FilterWith.class);

@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2013 the original author or authors.
+ * Copyright (C) 2012-2014 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,7 +16,7 @@
 
 package ninja;
 
-import ninja.utils.NoHttpBody;
+import com.google.common.base.Optional;
 
 
 /**
@@ -41,6 +41,15 @@ public class Results {
     public static Result ok() {
         return status(Result.SC_200_OK);
     }
+    
+    public static Result created(Optional<String> url) {
+        Result result = status(Result.SC_201_CREATED);
+        if (url.isPresent()) {
+            result.addHeader(Result.LOCATION, url.get());
+        }
+
+        return result;
+    }
 
     public static Result notFound() {
         return status(Result.SC_404_NOT_FOUND);
@@ -49,6 +58,10 @@ public class Results {
     public static Result forbidden() {
         return status(Result.SC_403_FORBIDDEN);
     }
+    
+    public static Result unauthorized() {
+        return status(Result.SC_401_UNAUTHORIZED);
+    }
 
     public static Result badRequest() {
         return status(Result.SC_400_BAD_REQUEST);
@@ -56,7 +69,7 @@ public class Results {
 
     public static Result noContent() {
         return status(Result.SC_204_NO_CONTENT)
-                .render(new NoHttpBody());
+                .render(Result.NO_HTTP_BODY);
     }
 
     public static Result internalServerError() {
@@ -82,7 +95,7 @@ public class Results {
 
         Result result = status(Result.SC_303_SEE_OTHER);
         result.addHeader(Result.LOCATION, url);
-        result.render(new NoHttpBody());
+        result.render(Result.NO_HTTP_BODY);
 
         return result;
     }
@@ -106,7 +119,7 @@ public class Results {
 
         Result result = status(Result.SC_307_TEMPORARY_REDIRECT);
         result.addHeader(Result.LOCATION, url);
-        result.render(new NoHttpBody());
+        result.render(Result.NO_HTTP_BODY);
 
         return result;
     }

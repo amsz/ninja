@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2013 the original author or authors.
+ * Copyright (C) 2012-2014 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -72,6 +72,26 @@ public class RouteBuilderImplTest {
         routeBuilder.OPTIONS().route("/index");
 
         assertTrue(buildRoute(routeBuilder).matches("OPTIONS", "/index"));
+
+    }
+    
+    @Test
+    public void testBasisHEAD() {
+
+        RouteBuilderImpl routeBuilder = new RouteBuilderImpl();
+        routeBuilder.HEAD().route("/index");
+
+        assertTrue(buildRoute(routeBuilder).matches("HEAD", "/index"));
+
+    }
+    
+    @Test
+    public void testBasicAnyHttpMethod() {
+
+        RouteBuilderImpl routeBuilder = new RouteBuilderImpl();
+        routeBuilder.METHOD("PROPFIND").route("/index");
+
+        assertTrue(buildRoute(routeBuilder).matches("PROPFIND", "/index"));
 
     }
 
@@ -182,6 +202,18 @@ public class RouteBuilderImplTest {
         assertEquals(1, map.entrySet().size());
         assertEquals("robots.txt", map.get("file"));
 
+        // multiple parameter parsing with regex expressions
+        routeBuilder = new RouteBuilderImpl();
+        routeBuilder.GET().route("/{name: .+}/photos/{id: [0-9]+}");
+        route = buildRoute(routeBuilder);
+
+        pathUnderTest = "/John/photos/2201";
+        assertTrue(route.matches("GET", pathUnderTest));
+        assertFalse(route.matches("GET", "John/photos/first"));
+        map = route.getPathParametersEncoded(pathUnderTest);
+        assertEquals(2, map.size());
+        assertEquals("John", map.get("name"));
+        assertEquals("2201", map.get("id"));
     }
 
     @Test
@@ -290,6 +322,19 @@ public class RouteBuilderImplTest {
 
         Result result = route.getFilterChain().next(null);
         assertEquals(result.getTemplate(), template);
+    }
+
+    @Test
+    public void testFailedControllerRegistration() {
+        RouteBuilderImpl routeBuilder = new RouteBuilderImpl();
+        routeBuilder.GET().route("/failure").with(MockController.class, "DoesNotExist");
+
+        try {	
+            Route route = routeBuilder.buildRoute(injector);
+            assertTrue(route == null);
+        } catch (Exception e) {
+            assertTrue(e instanceof IllegalStateException);
+        }
     }
 
     private Route buildRoute(RouteBuilderImpl builder) {

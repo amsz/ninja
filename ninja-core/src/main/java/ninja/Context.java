@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2013 the original author or authors.
+ * Copyright (C) 2012-2014 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -34,7 +34,12 @@ import org.apache.commons.fileupload.FileItemIterator;
 
 public interface Context {
 
+    /**
+     * Impl is used to hide stuff that a user should not see on 
+     * code completion. Internal stuff like setting routes should go here.
+     */
     interface Impl extends Context {
+        
         void setRoute(Route route);
     }
 
@@ -43,6 +48,18 @@ public interface Context {
      */
     public String CONTENT_TYPE = "Content-Type";
 
+    /**
+     * X Forwarded for header, used when behind fire walls and proxies.
+     */
+    public String X_FORWARD_HEADER = "X-Forwarded-For";
+    
+    /**
+     * Used to enable or disable usage of X-Forwarded-For header in
+     * getRemoteAddr(). Can be set in application.conf to true or false. If
+     * not set it's assumed to be false;
+     */
+    public String NINJA_PROPERTIES_X_FORWARDED_FOR = "ninja.x_forwarded_for_enabled";
+        
     /**
      * please use Result.SC_*
      * 
@@ -86,6 +103,30 @@ public interface Context {
      */
     @Deprecated
     String getRequestUri();
+
+    /**
+     * Returns the hostname as seen by the server.
+     *
+     * http://example.com/index would return "example.com".
+     *
+     * @return the host name as seen by the server
+     */
+    String getHostname();
+
+    /**
+     * Returns the Internet Protocol (IP) address of the client
+     * or last proxy that sent the request. For HTTP servlets, same as the 
+     * value of the CGI variable <code>REMOTE_ADDR</code>.
+     * 
+     * To honour the X-Forwarded-For flag make sure you set 
+     * "ninja.ninja.x_forwarded_for_enabled=true" in your application.conf. Default
+     * behavior is NOT to take X-Forwarded-For flag into account.
+     *
+     * @return a <code>String</code> containing the
+     *         IP address of the client that sent the request. Takes into 
+     *         account X-Forwarded-For header if configured to do so.
+     */
+    public String getRemoteAddr();
 
     /**
      * Returns the path that Ninja should act upon.
@@ -171,6 +212,20 @@ public interface Context {
     
     /**
      * Get the context path on which the application is running
+     * 
+     * That means:
+     * - when running on root the context path is empty
+     * - when running on context there is NEVER a trailing slash
+     * 
+     * We conform to the following rules:
+     * Returns the portion of the request URI that indicates the context of the 
+     * request. The context path always comes first in a request URI. 
+     * The path starts with a "/" character but does not end with a "/" character. 
+     * For servlets in the default (root) context, this method returns "". 
+     * The container does not decode this string.
+     * 
+     * As outlined by: http://docs.oracle.com/javaee/6/api/javax/servlet/http/HttpServletRequest.html#getContextPath()
+     * 
      * @return the context-path with a leading "/" or "" if running on root
      */
     String getContextPath();
@@ -372,6 +427,9 @@ public interface Context {
      */
     <T> T parseBody(Class<T> classOfT);
 
+    
+    boolean isAsync();
+        
     /**
      * Indicate that this request is going to be handled asynchronously
      */
@@ -583,4 +641,22 @@ public interface Context {
      * @see #getAttribute(String, Class)
      */
     void setAttribute(String name, Object value);
+    
+    /**
+     * Check to see if the request content type is JSON.
+     * <p>
+     * Checks to see if the request content type has been set application/json 
+     * </p>
+     * @return true if the content type is to set {@code application/json} 
+     */
+    boolean isRequestJson();
+
+    /**
+     * Check to see if the request content type is XML.
+     * <p>
+     * Checks to see if the request content type has been set application/xml 
+     * </p>
+     * @return true if the content type is to set {@code application/xml} 
+     */
+    boolean isRequestXml();
 }

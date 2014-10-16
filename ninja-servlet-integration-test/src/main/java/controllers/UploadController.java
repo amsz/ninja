@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2013 the original author or authors.
+ * Copyright (C) 2012-2014 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -34,6 +34,9 @@ import org.slf4j.Logger;
 import com.google.common.io.ByteStreams;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
+import java.io.IOException;
+import ninja.exceptions.InternalServerErrorException;
+import org.apache.commons.fileupload.FileUploadException;
 
 @Singleton
 public class UploadController {
@@ -78,8 +81,9 @@ public class UploadController {
         Renderable renderable = new Renderable() {
 
             @Override
-            public void render(Context context, Result result) throws Exception {
+            public void render(Context context, Result result) {
 
+                try {
                 // make sure the context really is a multipart context...
                 if (context.isMultipart()) {
 
@@ -123,6 +127,12 @@ public class UploadController {
                         }
                     }
 
+                }
+                
+                } catch (IOException | FileUploadException exception) {
+                    
+                    throw new InternalServerErrorException(exception);
+                
                 }
 
             }

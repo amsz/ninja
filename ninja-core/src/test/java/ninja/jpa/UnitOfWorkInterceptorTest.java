@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2013 the original author or authors.
+ * Copyright (C) 2012-2014 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package ninja.jpa;
 
 import org.aopalliance.intercept.MethodInvocation;
@@ -31,7 +32,7 @@ public class UnitOfWorkInterceptorTest {
     MethodInvocation methodInvocation;
     
     @Mock
-    com.google.inject.persist.UnitOfWork UnitOfWork;
+    com.google.inject.persist.UnitOfWork unitOfWork;
     
     
     @Test
@@ -40,7 +41,7 @@ public class UnitOfWorkInterceptorTest {
         // only the most outer annotation should open and close stuff...
 
         UnitOfWorkInterceptor unitOfWorkInterceptor = new UnitOfWorkInterceptor();
-        unitOfWorkInterceptor.unitOfWork = UnitOfWork;
+        unitOfWorkInterceptor.unitOfWork = unitOfWork;
         // already started...
         unitOfWorkInterceptor.didWeStartWork.set(Boolean.TRUE);
         
@@ -48,9 +49,9 @@ public class UnitOfWorkInterceptorTest {
         unitOfWorkInterceptor.invoke(methodInvocation);
         
         // no unitOfWork begin
-        Mockito.verify(UnitOfWork, Mockito.never()).begin();
+        Mockito.verify(unitOfWork, Mockito.never()).begin();
         // no unitOfWork ended
-        Mockito.verify(UnitOfWork, Mockito.never()).end();
+        Mockito.verify(unitOfWork, Mockito.never()).end();
         
         // but method has been invoked
         Mockito.verify(methodInvocation).proceed();
@@ -64,15 +65,15 @@ public class UnitOfWorkInterceptorTest {
         // only the most outer annotation should open and close stuff...
 
         UnitOfWorkInterceptor unitOfWorkInterceptor = new UnitOfWorkInterceptor();
-        unitOfWorkInterceptor.unitOfWork = UnitOfWork;
+        unitOfWorkInterceptor.unitOfWork = unitOfWork;
         
         // execute method invocation
         unitOfWorkInterceptor.invoke(methodInvocation);
         
         // no unitOfWork begin
-        Mockito.verify(UnitOfWork).begin();
+        Mockito.verify(unitOfWork).begin();
         // no unitOfWork ended
-        Mockito.verify(UnitOfWork).end();
+        Mockito.verify(unitOfWork).end();
         
         // but method has been invoked
         Mockito.verify(methodInvocation).proceed();

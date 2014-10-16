@@ -1,3 +1,19 @@
+/**
+ * Copyright (C) 2012-2014 the original author or authors.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package ninja;
 
 import java.io.IOException;
@@ -13,6 +29,7 @@ import com.google.common.collect.Lists;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
+import ninja.standalone.NinjaJetty;
 import org.apache.maven.artifact.Artifact;
 import org.apache.maven.model.Plugin;
 
@@ -21,7 +38,7 @@ import org.apache.maven.model.Plugin;
  * 
  * @goal run
  * @threadSafe
- * @requiresDependencyResolution compile
+ * @requiresDependencyResolution runtime
  */
 public class NinjaRunMojo extends AbstractMojo {
     
@@ -38,7 +55,7 @@ public class NinjaRunMojo extends AbstractMojo {
      * For webapps this is usually
      * something like /User/username/workspace/project/target/classes
      * 
-     * @parameter expression="${project.build.outputDirectory}"
+     * @parameter property="project.build.outputDirectory"
      */
     private String buildOutputDirectory;
     
@@ -77,26 +94,50 @@ public class NinjaRunMojo extends AbstractMojo {
      * @parameter
      */
     private String contextPath;
-    
+
+    /**
+    * Port for SuperDevMode
+    *
+    * @parameter
+    */
+    private String port;
+
     @Override
     public void execute() throws MojoExecutionException {
         
-        // Read property from system properties.
-        String contextPathProperty = System.getProperty("ninja.context", "/");
         // If not set up in pom.xml then use system property.
         if (contextPath == null) {
+            String contextPathProperty 
+                    = System.getProperty(
+                        NinjaJetty.COMMAND_LINE_PARAMETER_NINJA_CONTEXT);
+            
             contextPath = contextPathProperty;
         }
+
+
+
+        if (port == null) {
+            String portProperty
+                    = System.getProperty(
+                        NinjaJetty.COMMAND_LINE_PARAMETER_NINJA_PORT, "8080");
+            port = portProperty;
+        }
+
         
         getLog().debug(
                 "Directory for classes is (used to start local jetty and watch for changes: " 
                 + buildOutputDirectory);
         
+        
         getLog().info("------------------------------------------------------------------------");
-        if (getLog().isInfoEnabled()) {
+        if (contextPath != null) {
             getLog().info("Launching Ninja SuperDevMode with '" + contextPath + "' context path.");
+        } else {
+             getLog().info("Launching Ninja SuperDevMode on root context");
         }
+        getLog().info("Ninja Will launch on the following port: " + port);
         getLog().info("------------------------------------------------------------------------");
+        
 
         initMojoFromUserSubmittedParameters();
         
@@ -138,7 +179,8 @@ public class NinjaRunMojo extends AbstractMojo {
                     directoryToWatchRecursivelyForChanges,
                     classpathItems,
                     excludesAsList, 
-                    contextPath);
+                    contextPath,
+                    port);
             
             nWatchAndTerminate.startWatching();
             

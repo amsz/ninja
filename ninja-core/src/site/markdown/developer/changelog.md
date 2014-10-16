@@ -1,6 +1,206 @@
+Version X
+=========
+
+* 2014-10-10 Stability improvement for Jpa blog archetype - setup works now in a predictable manner for testcases ra).
+* 2014-10-09 Removed localized lookup in Freemarker templates. Not needed as Ninja does i18n already (ra).
+* 2014-10-07 Added support for multiple variable parts *with regex* in routes (bazi)
+* 2014-10-07 Added testcase for NinjaCache (ra)
+* 2014-10-06 Add optional hot-reload support for `-Dninja.external.conf` external configuration for all runtime modes if `-Dninja.external.reload=true` (gitblit)
+* 2014-10-06 Add automatic hot-reload support for `application.conf` in **dev** mode (gitblit)
+* 2014-10-06 Add automatic hot-reload support for language `messages` files in **dev** mode (gitblit)
+
+Version 3.3.3
+=============
+
+* 2014-09-28 Bump to guice beta5 (ra).
+* 2014-09-26 Add support for ${prettyTime(date)} to FreeMarker integration for localized relative-date formatting like "2 days ago" (gitblit)
+* 2014-09-22 Add explicit `text/plain` template engine and deprecated Result.renderRaw(String). Results.text().render(myString) is the preferred syntax.  (gitblit)
+* 2014-09-12 Add ServletContext to ContextImpl to improve 3rd-party integration (gitblit)
+* 2014-09-12 Log registered routes on startup (gitblit)
+* 2014-08-29 Added nicer error screens (ra)
+* 2014-08-29 Added fallbackContentType and supportedContentTypes to Result for better content negotiation (ra).
+* 2014-08-28 Added support for java.util.Date on BodyParserEnginePost. (pedro-stanaka)
+
+Version 3.3.2
+=============
+
+* 2014-08-24 HibernatePersistence is deprecated. Use HibernatePersistenceProvider instead. (eiryu)
+* 2014-08-24 Fix mistake in the sample code (eiryu)
+* 2014-08-21 Added utility methods on Context for isRequestXml and isRequestJson. (dazhudson)
+* 2014-08-21 Fixed bug where getRequestPath would return null in async mode. (dazhudson)
+* 2014-08-21 Modified Context.getRemoteAddr() to honour the X-Forwarded-For header. (dazhudson) 
+
+Version 3.3.1
+=============
+
+ * 2014-08-09 BugFix #185. Rollback of #157. UnitOfWork behavior fixed. (nobullet, cpisto, ra).
+ * 2014-08-01 Implement proper 401 unauthorized support (gitblit)
+ * 2014-08-01 Add an HTTP Basic Authentication filter and a UsernamePasswordValidator interface (gitblit)
+ * 2014-08-01 Added type support for byte, char, short, enums, and arrays (gitblit)
+
+Version 3.3.0
+=============
+
+ * 2014-07-31 Improved conf.Ninja - better content negotiation based error handling (ra)
+ * 2014-07-31 new ninja-async-machine-beta (darren,ra)
+ * 2014-07-31 new ninja-annotation-router-beta (darren,ra)
+ * 2014-07-22 Add Router.getRoutes() accessor (gitblit)
+ * 2014-07-22 Throw IllegalStateException when a registered controller method does not exist (gitblit)
+ * 2014-07-10 Added support for forbidden error to Ninja default results. (ra)
+ * 2014-06-06 Fixed testcase that was flaky in GMT-5 timezones. (ra) 
+ * 2014-06-05 Fixed dependency problems with scope test and ninja-test-utilities (ra) 
+
+
+Version 3.2.0
+=============
+
+ * 2014-06-22 Improved binding between slf4j and Freemarker
+ * 2014-06-22 Updated libraries:
+    * ch.qos.logback:logback-classic ........................ 1.1.1 -> 1.1.2
+    * com.fasterxml.jackson.core:jackson-core ............... 2.3.1 -> 2.4.1
+    * com.fasterxml.jackson.dataformat:jackson-dataformat-xml ... 2.3.1 -> 2.4.1
+    * com.fasterxml.jackson.module:jackson-module-afterburner ...
+    * com.google.guava:guava ................................ 16.0.1 -> 17.0
+    * com.google.inject.extensions:guice-persist .......... 3.0 -> 4.0-beta4
+    * com.h2database:h2 ................................. 1.3.175 -> 1.4.178
+    * commons-fileupload:commons-fileupload ................... 1.3 -> 1.3.1
+    * net.sf.ehcache:ehcache ................................ 2.8.0 -> 2.8.3
+    * net.spy:spymemcached ................................ 2.10.4 -> 2.11.3
+    * org.apache.commons:commons-lang3 ...................... 3.2.1 -> 3.3.2
+    * org.apache.httpcomponents:httpclient .................. 4.3.2 -> 4.3.4
+    * org.apache.httpcomponents:httpmime .................... 4.3.2 -> 4.3.4
+    * org.doctester:doctester-core .......................... 1.1.1 -> 1.1.3
+    * org.eclipse.jetty:jetty-server .... 9.1.2.v20140210 -> 9.2.1.v20140609
+    * org.eclipse.jetty:jetty-servlet ... 9.1.2.v20140210 -> 9.2.1.v20140609
+    * org.fluentlenium:fluentlenium-core ................... 0.9.2 -> 0.10.2
+    * org.hibernate:hibernate-c3p0 .............. 4.3.1.Final -> 4.3.5.Final
+    * org.hibernate:hibernate-entitymanager ..... 4.3.1.Final -> 4.3.5.Final
+    * org.slf4j:jcl-over-slf4j .............................. 1.7.6 -> 1.7.7
+    * org.slf4j:log4j-over-slf4j ............................ 1.7.6 -> 1.7.7
+ * 2014-06-21 Fixed issue https://github.com/ninjaframework/ninja/issues/183. Test
+              is now using date fixed to UTC at MessagesImplTest.
+ * 2014-06-21 Replaced all javax.inject.Inject imports with com.google.inject.Inject.
+              That way JEE containers do not try to inject stuff into Ninja 
+              applications that run with Guice anyway. (ra)
+ * 2014-06-21 i18n Freemarker engine now displays i18n keys when
+              i18n values are missing. The behavior before was to throw an exception. 
+              Also added battery of tests. (ra)
+ * 2014-06-03 Added <code>getRemoteAddr()</code> method which returns IP of the
+              client (or last proxy) that sent the request to the context object. (Kokol)
+ * 2014-06-21 Support for conf.Ninja. Makes it possible for user to customize
+              request and error handling (ra).
+ * 2014-06-10 Use SecureRandom instead of Random to generate the application secret. (metacity)
+
+Version 3.1.6
+=============
+
+ * 2014-06-09 Fixed a wrong variable when logging (metacity)
+ * 2014-06-01 Enhanced security check for callback in JsonP (nobullet).
+ * 2014-05-30 Fixed wrong Logger in ResultHandler. Changed javax @Inject to Guice @Inject
+              to make Ninja more compatible with Weld. 
+ * 2014-05-21 Added <code>created(Optional&lt;String&gt;)</code> and <code>unauthorized()</code> 
+              methods to the <code>Results</code> class. (metacity)
+ * 2014-05-19 Added port selection to SuperDevMode. (Naum/Buffer0verflow)
+
+Version 3.1.5
+=============
+
+ * 2014-05-08 Added getHostname() method to context as a wrapper to getting the 
+              Host header. (mattjonesorg)
+ * 2014-05-08 Fixed issue #173. NinjaJetty was listening on two http ports. (ra)
+ * 2014-04-27 Added possibility to define custom package for application
+              module and routes (avarabyeu)
+ * 2014-04-10 "username" of SecureFilter now static final and can be referenced
+              from other modules in a typesafe way. (ra)
+ * 2014-04-10 Support getInjector() on FluentLenium testcases (ra)
+ * 2014-04-07 Logback is now only configured when on classpath. Allows to use
+              jul logging on App Engine. (Nomi + ra)
+
+Version 3.1.4
+=============
+
+ * 2014-04-06 Fixed bug (#165) that caused that html template caching did 
+              not work properly. (Nomi + ra)
+ * 2014-03-28 Added support for static Result.NO_HTTP_BODY. No need
+              to create new() class all the time. (ra)
+
+Version 3.1.3
+=============
+
+ * 2014-03-22 Fixed build to work with JDK 8. (ra)
+ * 2014-03-22 Fixed bug in archetype. Reordered modules, so that testing of archetypes works. (ra)
+ * 2014-03-22 Removed error-prone again (not yet compatible with JDK 8) (ra)
+ * 2014-03-14 Added error-prone bug checking to build lifecycle of Ninja. (ra)
+
+
+Version 3.1.2
+=============
+
+ * 2014-03-13 BugFix #157. @UnitOfWork did not work when nested with
+              @Transactional or other @UnitOfWork annotations. (ra)
+ * 2014-03-07 Now caching virtually infinite amount of template files in memory
+
+
+Version 3.1.1
+=============
+
+ * 2014-03-06 Fixed bug that prevented some applications running inside
+              servlet container to start up properly. (ra). 
+ * 2014-03-06 Fixed potential multi threading issue upon application startup.
+              method getInjector() method of GuiceInjector was not thread safe (ra). 
+
+
+Version 3.1.0
+=============
+
+  * 2014-03-05 #155 Fixed glitch were Freemarker did not emit a proper 400 when
+               template not found.
+  * 2014-03-05 Fix so that ninjaProperties.getContextPath() and context.getContextPath() 
+               are always in sync. No matter what contextpath you 
+               supply via the command line and -Dninja.context= ... (ra)
+  * 2014-03-05 NinjaRunner that allows to auto inject resources into NinjaTests (smallufo)
+  * 2014-03-05 #154 Some performance improvements for reverse routing. (ra)
+  * 2014-03-04 Fixed bug where reverse routing was not properly working for
+               routes with regex. (ra)
+  * 2014-03-04 Added reverse routing to Freemarker templates via ${reverseRoute(...)},
+               ${assetsAt(...)}, ${webJarsAt(...)} (ra)
+  * 2014-03-03 Added support for contextPath to NinjaProperties. That's a better
+               place than Context (context is only available in request). (ra)
+  * 2014-03-03 Using a map no longer needed for generating parameterized
+               reverse route. Now we can specify parameters via simple array. (ra)
+  * 2014-03-03 RouterImpl.getReverseRoute() now prefixes the returned url with
+               the context path if one is configured. (zz)
+
+Version 3.0.3
+=============
+
+  * 2014-02-26 Bugfix. Dependecy resolution for SuperDevMode was "compile" and 
+               not "runtime". => Changed to "runtime"  (zoran, ra)
+
+Version 3.0.2
+=============
+
+  * 2014-02-19 Bugfix #145. Shutdown hooks not executed in SuperDevMode and
+               standalone mode.  (ra)
+
+Version 3.0.1
+=============
+
+ * 2014-02-18 Bump to Jetty 9.1.2.v20140210 (ra)
+ * 2014-02-18 Ninja now uses utf-8 for everything in a request. Otherwise
+              e.g. post requests are encoded in a platform dependent way (mallowlabs)
+ * 2014-02-17 Fixed possible glitch in the matrix: BodyParserEnginePost.invoke()
+              may set Strings to unsupported fields (amsz, ra).
+ * 2014-02-17 Added support for custom static asset location (sojin)
+ * 2014-02-14 Proper handling of exceptions in controllers => now 
+              emitted as 400 - bad request by the framework. (ra)
+
 Version 3.0.0
 =============
 
+ * 2014-02-14 Added support for HEAD and arbitrary http methods in router (ra)
+ * 2014-02-14 Added support for getting parameters and automatic conversion
+             (getParameterAs in context) (amsz)
  * 2014-02-12 Adding support of ninja.context for SuperDevMode (nobullet)
  * 2014-02-11 Removed hibernate-jpa-2.0-api (already included by hibernate in version 2.1). (smallufo).   
  * 2014-02-07 Added result support for route (amsz).

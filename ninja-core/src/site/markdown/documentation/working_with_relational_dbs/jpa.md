@@ -92,8 +92,8 @@ To make that finally come to live you have to configure the second JPA component
     version=&quot;2.0&quot;&gt;
 
     &lt;!-- Database settings for development and for tests --&gt;
-    &lt;persistence-unit name=&quot;postgresql&quot; transaction-type=&quot;RESOURCE_LOCAL&quot;&gt;
-        &lt;provider&gt;org.hibernate.ejb.HibernatePersistence&lt;/provider&gt;
+    &lt;persistence-unit name=&quot;dev_unit&quot; transaction-type=&quot;RESOURCE_LOCAL&quot;&gt;
+        &lt;provider&gt;org.hibernate.jpa.HibernatePersistenceProvider&lt;/provider&gt;
 
         &lt;properties&gt;
             &lt;property name=&quot;hibernate.connection.driver_class&quot; value=&quot;org.postgresql.Driver&quot;/&gt;
@@ -117,7 +117,7 @@ To make that finally come to live you have to configure the second JPA component
 
     &lt;!-- production database - with sensible connect strings optimized for the real servers. --&gt;
     &lt;persistence-unit name=&quot;prod_unit&quot; transaction-type=&quot;RESOURCE_LOCAL&quot;&gt;
-        &lt;provider&gt;org.hibernate.ejb.HibernatePersistence&lt;/provider&gt;
+        &lt;provider&gt;org.hibernate.jpa.HibernatePersistenceProvider&lt;/provider&gt;
 
         &lt;properties&gt;
             &lt;property name=&quot;hibernate.connection.driver_class&quot; value=&quot;org.postgresql.Driver&quot;/&gt;
@@ -239,11 +239,14 @@ your method with that annotation and guice-persist will handle all boilerplate f
 
 But <code>@UnitOfWork</code> only handles connections and does not help you with transactions.
 This is what <code>@Transactional</code> is for. <code>@Transactional</code> automatically opens and closes
-transactions around the annotated method.
+transactions around the annotated method. Make sure you are using
+<code>import com.google.inject.persist.Transactional;</code> for <code>@Transactional</code>.
 
 Saving is also straight forward:
 
 <pre class="prettyprint">
+import com.google.inject.persist.Transactional;
+
 @Transactional
 public Result postIndex(GuestbookEntry guestbookEntry) {
 
@@ -263,9 +266,19 @@ public Result postIndex(GuestbookEntry guestbookEntry) {
 Saving really is just a call to entityManager.perist(...). It can not get much simpler. 
 But again - don't forget to annotate your method with <code>@Transactional</code>.
 
-Summing up: For read-only queries you should use <code>@UnitOfWork</code> (and it may be faster because
-there are no transactions started). But for saving / updating and deleting data
-always use <code>@Transactional</code>.
+**Summing up:** 
+
+1. For read-only queries you should use <code>@UnitOfWork</code> (and it may be faster because
+there are no transactions started). You can wrap either a controller method or method of 
+your service class.
+2. For saving / updating and deleting data always use <code>@Transactional</code>. The same
+here: you can wrap either a controller method or method of your service class.
+3. For several transactions within one HTTP request or scheduler invocation:
+ * a. use <code>@UnitOfWork</code> around the controller or service method and use 
+<code>@Transactional</code> or programmatic API of the <code>EntityManager</code> to demarcate 
+transactions within the same <code>@UnitOfWork</code>
+ * b. use <code>@Transactional</code> or programmatic API of the <code>EntityManager</code> to 
+demarcate transactions within the same request or scheduler invocation without <code>@UnitOfWork</code>
 
 
 More
@@ -273,7 +286,9 @@ More
 
 The default way to operate you persistence units is by using transaction-type=RESOURCE_LOCAL. It gives
 you a lot more control and predictability over what is happening and when stuff gets saved. Ninja
-works best in that mode.
+works best in that mode because the framework is responsible for setting up/shutting down the JPA's 
+<code>EntityManagerFactory</code> and <code>EntityManagers</code> in oppose to JTA mode where 
+transactions and <code>EntityManagers</code> are injected/managed by JEE containers.
 
 If you want to know more about JPA please refer to the official docs at: 
 http://docs.oracle.com/javaee/7/tutorial/doc/persistence-intro.htm .

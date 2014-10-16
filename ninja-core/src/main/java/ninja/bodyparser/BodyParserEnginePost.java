@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2013 the original author or authors.
+ * Copyright (C) 2012-2014 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,6 +16,7 @@
 
 package ninja.bodyparser;
 
+import com.google.common.collect.Sets;
 import java.lang.reflect.Field;
 import java.util.Map.Entry;
 
@@ -27,49 +28,76 @@ import org.slf4j.Logger;
 
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
+import java.util.Set;
+import org.slf4j.LoggerFactory;
 
 @Singleton
 public class BodyParserEnginePost implements BodyParserEngine {
 
-    private final Logger logger;
-
-    @Inject
-    public BodyParserEnginePost(Logger logger) {
-        this.logger = logger;
-
-    }
+    private final Logger logger = LoggerFactory.getLogger(BodyParserEnginePost.class);
 
     @Override
     public <T> T invoke(Context context, Class<T> classOfT) {
+        
         T t = null;
 
         try {
             t = classOfT.newInstance();
-        } catch (Exception e) {
-            logger.error("can't newInstance class " + classOfT.getName(), e);
+        } catch (InstantiationException | IllegalAccessException e) {
+            logger.error("Can't create new instance of class {}", classOfT.getName(), e);
             return null;
         }
+
+        Set<String> declaredFields = getAllDeclaredFieldsAsStringSet(classOfT);
+
         for (Entry<String, String[]> ent : context.getParameters().entrySet()) {
-            try {
-                Field field = classOfT.getDeclaredField(ent.getKey());
-                field.setAccessible(true);
-                
-                String value = ent.getValue()[0];
+
+            if (declaredFields.contains(ent.getKey())) {
+
                 try {
-                    field.set(t, SwissKnife.convert(value, field.getType()));
-                } catch (UnsupportedOperationException e) {
-                    field.set(t, value);
+
+                    Field field = classOfT.getDeclaredField(ent.getKey());
+                    field.setAccessible(true);
+
+                    String value = ent.getValue()[0];
+
+                    Object convertedValue = SwissKnife.convert(value, field.getType());
+
+                    if (convertedValue != null) {
+
+                        field.set(t, convertedValue);
+
+                    }
+
+                } catch (NoSuchFieldException 
+                        | SecurityException 
+                        | IllegalArgumentException 
+                        | IllegalAccessException e) {
+
+                    logger.warn(
+                            "Error parsing incoming Post request into class {}. Key {} and value {}.", 
+                            classOfT.getName(), ent.getKey(), ent.getValue(), e);
                 }
-            } catch (Exception e) {
-                logger.warn(
-                        "Error parsing incoming Post for key " + ent.getKey()
-                                + " and value " + ent.getValue(), e);
+
             }
+
         }
         return t;
     }
-    
+
     public String getContentType() {
-        return ContentTypes.APPLICATION_POST_FORM; 
+        return ContentTypes.APPLICATION_POST_FORM;
+    }
+
+    private <T> Set<String> getAllDeclaredFieldsAsStringSet(Class<T> clazz) {
+
+        Set<String> declaredFields = Sets.newHashSet();
+
+        for (Field field : clazz.getDeclaredFields()) {
+            declaredFields.add(field.getName());
+        }
+
+        return declaredFields;
+
     }
 }

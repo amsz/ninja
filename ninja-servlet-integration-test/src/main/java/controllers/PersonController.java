@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2013 the original author or authors.
+ * Copyright (C) 2012-2014 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -55,6 +55,25 @@ public class PersonController {
         // okay... we simply render the parsed object again as json
         // usually we would save something into a db or so..
         return Results.xml().render(person);
+    }
+    
+    public Result getPersonViaContentNegotiation() {
+        Person person = new Person();
+        person.name = "zeeess name - and some utf8 => öäü";
+        
+        return Results.ok().render(person);
+    }
+    
+    public Result getPersonViaContentNegotiationAndFallback() {
+        Person person = new Person();
+        person.name = "zeeess name - and some utf8 => öäü";
+        
+        return Results
+                .ok()
+                .supportedContentTypes(Result.TEXT_HTML, Result.APPLICATON_JSON)
+                .fallbackContentType(Result.TEXT_HTML)
+                .template("views/PersonController/getPersonViaContentNegotiation.ftl.html")
+                .render(person);
     }
 
 }

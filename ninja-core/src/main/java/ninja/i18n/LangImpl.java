@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2013 the original author or authors.
+ * Copyright (C) 2012-2014 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -207,8 +207,9 @@ public class LangImpl implements Lang {
         if (applicationLanguages == null || applicationLanguages.length == 0) {
             
             String EXCEPTION_TEXT = 
-                    "Please define at least one language in your application.conf file. "
-                    + "For instance application.languages=en to make en your default language.";
+                    "Can not retrieve application languages from ninjaProperties."
+                    + " Did you forget to define at least one language in your application.conf file?"
+                    + " For instance 'application.languages=en' makes 'en' your default language.";
             
             throw new IllegalStateException(EXCEPTION_TEXT);
             

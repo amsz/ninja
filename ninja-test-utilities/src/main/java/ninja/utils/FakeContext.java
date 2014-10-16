@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2013 the original author or authors.
+ * Copyright (C) 2012-2014 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -41,6 +41,7 @@ import org.apache.commons.fileupload.FileItemIterator;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Maps;
+import ninja.ContentTypes;
 
 /**
  * A fake context
@@ -55,6 +56,8 @@ public class FakeContext implements Context {
     /** please use the requestPath stuff */
     @Deprecated
     private String requestUri;
+    private String hostname;
+    private String remoteAddr;
     private FlashScope flashScope;
     private Session session;
     private List<Cookie> addedCookies = new ArrayList<Cookie>();
@@ -106,6 +109,20 @@ public class FakeContext implements Context {
     @Deprecated
     public String getRequestUri() {
         return requestUri;
+    }
+
+    @Override
+    public String getHostname() {
+        return hostname;
+    }
+
+    public void setHostname(String hostname) {
+        this.hostname = hostname;
+    }
+
+    @Override
+    public String getRemoteAddr() {
+        return remoteAddr;
     }
 
     public FakeContext setFlashCookie(FlashScope flashCookie) {
@@ -280,6 +297,11 @@ public class FakeContext implements Context {
     }
 
     @Override
+    public boolean isAsync() {
+        throw new UnsupportedOperationException("Not supported in fake context");
+    }
+    
+    @Override
     public void handleAsync() {
         throw new UnsupportedOperationException("Not supported in fake context");
     }
@@ -424,4 +446,25 @@ public class FakeContext implements Context {
 		this.contextPath = contextPath;
 	}
 
+    @Override
+    public boolean isRequestJson() {
+        String contentType = getRequestContentType();
+        if (contentType == null || contentType.isEmpty()) {
+            return false;
+        }
+
+        return contentType.startsWith(ContentTypes.APPLICATION_JSON);
+    }
+
+    @Override
+    public boolean isRequestXml() {
+        String contentType = getRequestContentType();
+        if (contentType == null || contentType.isEmpty()) {
+            return false;
+        }
+
+        return contentType.startsWith(ContentTypes.APPLICATION_XML);
+    }
+
+    
 }

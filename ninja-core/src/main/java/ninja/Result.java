@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2013 the original author or authors.
+ * Copyright (C) 2012-2014 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,22 +16,28 @@
 
 package ninja;
 
-import java.io.OutputStream;
+import com.google.common.base.Optional;
+import com.google.common.collect.ImmutableList;
+import java.io.IOException;
+import java.io.Writer;
 import java.util.AbstractMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
 import ninja.utils.DateUtil;
+import ninja.utils.NoHttpBody;
 import ninja.utils.ResponseStreams;
 import ninja.utils.SwissKnife;
 
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import java.io.IOException;
-import java.io.Writer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import java.io.OutputStream;
+import java.util.Arrays;
+import ninja.exceptions.InternalServerErrorException;
 
 public class Result {
     
@@ -40,23 +46,25 @@ public class Result {
     // /////////////////////////////////////////////////////////////////////////
     // HTTP Status codes (for convenience)
     // /////////////////////////////////////////////////////////////////////////
-    public static int SC_200_OK = 200;
-    public static int SC_204_NO_CONTENT = 204;
+    public static final int SC_200_OK = 200;
+    public static final int SC_201_CREATED = 201;
+    public static final int SC_204_NO_CONTENT = 204;
 
     // for redirects:
-    public static int SC_300_MULTIPLE_CHOICES = 300;
-    public static int SC_301_MOVED_PERMANENTLY = 301;
-    public static int SC_302_FOUND = 302;
-    public static int SC_303_SEE_OTHER = 303;
-    public static int SC_304_NOT_MODIFIED = 304;
-    public static int SC_307_TEMPORARY_REDIRECT = 307;
+    public static final int SC_300_MULTIPLE_CHOICES = 300;
+    public static final int SC_301_MOVED_PERMANENTLY = 301;
+    public static final int SC_302_FOUND = 302;
+    public static final int SC_303_SEE_OTHER = 303;
+    public static final int SC_304_NOT_MODIFIED = 304;
+    public static final int SC_307_TEMPORARY_REDIRECT = 307;
 
-    public static int SC_400_BAD_REQUEST = 400;
-    public static int SC_403_FORBIDDEN = 403;
-    public static int SC_404_NOT_FOUND = 404;
+    public static final int SC_400_BAD_REQUEST = 400;
+    public static final int SC_401_UNAUTHORIZED = 401;
+    public static final int SC_403_FORBIDDEN = 403;
+    public static final int SC_404_NOT_FOUND = 404;
 
-    public static int SC_500_INTERNAL_SERVER_ERROR = 500;
-    public static int SC_501_NOT_IMPLEMENTED = 501;
+    public static final int SC_500_INTERNAL_SERVER_ERROR = 500;
+    public static final int SC_501_NOT_IMPLEMENTED = 501;
 
     // /////////////////////////////////////////////////////////////////////////
     // Some MIME types (for convenience)
@@ -68,6 +76,11 @@ public class Result {
     public static final String APPLICATION_XML = "application/xml";
     public static final String APPLICATION_OCTET_STREAM = "application/octet-stream";
 
+    // This is a marker. Returning something like
+    // Result.html().render(NO_HTTP_BODY) will cause all body rendering
+    // to be bypassed. This effectively means you'll return only headers and no body
+    // useful for "no content" style responses.
+    public static final NoHttpBody NO_HTTP_BODY = new NoHttpBody();
     
     // /////////////////////////////////////////////////////////////////////////
     // Finally we got to the core of this class...
@@ -80,6 +93,8 @@ public class Result {
     public static final String DATE = "Date";
     public static final String EXPIRES = "Expires";
 
+    public static final String WWW_AUTHENTICATE = "WWW-Authenticate";
+
     private int statusCode;
 
     /* The object that will be rendered. Could be a Java Pojo. Or a map. Or xyz. Will be
@@ -90,6 +105,28 @@ public class Result {
      * Something like: "text/html" or "application/json"
      */
     private String contentType;
+    
+    /**
+     * If content type is not set AND supported type does not match accept
+     * header of request this fallback will be used. If it is not set 
+     * a bad request exception will be thrown.
+     */
+    private Optional<String> fallbackContentType = Optional.absent();
+    
+    /**
+     * A list of content types this result will handle. If you got a general
+     * person object you can render it via application/json and application/xml
+     * without changing anything inside your controller for instance.
+     * 
+     */
+    private final List<String> supportedContentTypes = Lists.newArrayList();
+    
+    /**
+     * A newly created Result will handle those three result types out of 
+     * the box.
+     */
+    private final static List<String> DEFAULT_SUPPORTED_CONTENT_TYPES
+            = ImmutableList.of(TEXT_HTML, APPLICATON_JSON, APPLICATION_XML);
 
     /**
      * Something like: "utf-8" => will be appended to the content-type. eg
@@ -108,7 +145,8 @@ public class Result {
      * Refer to {@link Result#SC_200_OK}, {@link Result#SC_204_NO_CONTENT} and so on
      * for some short cuts to predefined results. 
      * 
-     * @param statusCode The status code to set for the result. Shortcuts to the code at: {@link Result#SC_200_OK}
+     * @param statusCode The status code to set for the result. 
+     *                    Shortcuts to the code at: {@link Result#SC_200_OK}
      */
     public Result(int statusCode) {
 
@@ -135,7 +173,7 @@ public class Result {
      * If the converted camelCase key of this object already exists an {@link IllegalArgumentException}
      * is being thrown.
      * 
-     * @param Object The object to add (either an arbitrary class or Renderable).
+     * @param object The object to add (either an arbitrary class or Renderable).
      * @return Result this result for chaining.
      * 
      */
@@ -198,13 +236,13 @@ public class Result {
     }
     
     /**
-     * Handles two cases:
-     * 1) If this.renderable is null a new HashMap is generated and this entry being added
+     * Handles following cases:
+     * 1) If this.renderable is null: a new HashMap is generated and this entry being added
      *    to the map.
-     * 2) If this.renderable is a Map the entry is added
-     * 3) If this.renderable is an object (not a renderable) a Map is generated and both
+     * 2) If this.renderable is a Map: the entry is added
+     * 3) If this.renderable is an object (not a renderable): a Map is generated and both
      *    the former object and the new entry are being added.
-     * 3) If this.renderable is a Renderable an {@link IllegalArgumentException} is thrown.
+     * 4) If this.renderable is a Renderable: an {@link IllegalArgumentException} is thrown.
      * 
      * If the entry key already exists in the map of this.renderable an {@link IllegalArgumentException}
      * is thrown.
@@ -290,35 +328,44 @@ public class Result {
     
 
     /**
-     * This method directly renders the String to the output. It
-     * completely bypasses any rendering engine.
-     * 
+     * This method directly renders the String to the output. It completely
+     * bypasses any rendering engine.
+     *
      * Thus you can render anything you want.
-     * 
-     * Chaining of resultRaw is NOT supported. Mixing with render()
-     * is NOT supported.
-     * 
-     * It is always recommended to implement your own RenderingEngine OR
-     * use existing rendering engines.
-     * 
-     * Example:
-     * <code>
+     *
+     * Chaining of resultRaw().resultRaw()... is NOT supported. Mixing with
+     * render() is NOT supported.
+     *
+     * It is always recommended to implement your own RenderingEngine OR use
+     * existing rendering engines.
+     *
+     * Example: <code>
      * public Result controllerMethod() {
      *    String customJson = "{\"user\" : \"john@woo.com\"}";
-     * 
+     *
      *    return Results.json().renderRaw(customJson);
      * }
      * </code>
-     * 
-     * @param string The string to render.
-     * @return A result that will render the string directly to the output stream.
+     *
+     * @param string
+     *            The string to render.
+     * @return A result that will render the string directly to the output
+     *         stream.
+     * @deprecated => use text().render(string), html().render(string),
+     *             json().render(string), xml().render(string), or
+     *             contentType(type).render(string).
      */
+    @Deprecated
     public Result renderRaw(final String string) {
  
         Renderable renderable = new Renderable() {
  
             @Override
-            public void render(Context context, Result result) throws Exception {
+            public void render(Context context, Result result) {
+                
+                if (result.getContentType() == null) {
+                    result.contentType(Result.TEXT_PLAIN);
+                }
  
                 ResponseStreams resultJsonCustom = context
                         .finalizeHeaders(result);
@@ -342,6 +389,49 @@ public class Result {
         return this;
         
     }
+    
+    /**
+     * This method directly renders the byte array to the output. It
+     * completely bypasses any rendering engine.
+     * 
+     * Thus you can render anything you want.
+     * 
+     * Chaining of resultRaw().resultRaw()... is NOT supported. Mixing with render()
+     * is NOT supported.
+     * 
+     * It is always recommended to implement your own RenderingEngine OR
+     * use existing rendering engines.
+     * 
+     * @param bytes The bytes to render.
+     * @return A result that will render the string directly to the output stream.
+     */
+    public Result renderRaw(final byte [] bytes) {
+ 
+        Renderable renderable = new Renderable() {
+                    
+            @Override
+            public void render(Context context, Result result) {
+                if (result.getContentType() == null) {
+                    result.contentType(Result.APPLICATION_OCTET_STREAM);
+                }
+                ResponseStreams responseStreams = context
+                        .finalizeHeaders(result);
+                
+                try (OutputStream outputStream = responseStreams.getOutputStream()) {
+
+                    outputStream.write(bytes);
+                    
+                } catch (IOException ioException) {
+                    throw new InternalServerErrorException(ioException);
+                }
+            }
+        };
+                    
+        render(renderable);
+ 
+        return this;
+
+   }
 
     public String getContentType() {
         return contentType;
@@ -356,10 +446,12 @@ public class Result {
     }
 
     /**
-     * @return Set the charset of the result. Is "utf-8" by default.
+     * @param charset Set the charset of the result. Is "utf-8" by default.
+     * @return The result for chaining.
      */
-    public void charset(String charset) {
+    public Result charset(String charset) {
         this.charset = charset;
+        return this;
     }
 
     /**
@@ -383,9 +475,72 @@ public class Result {
      * @param contentType
      *            (without encoding) something like "text/html" or
      *            "application/json"
+     * @return The result for chaining.
      */
     public Result contentType(String contentType) {
         this.contentType = contentType;
+        return this;
+    }
+    
+    /**
+     * Will add a content type to the list of supported content types.
+     * Calling that method two times with different content types will add both
+     * content types.
+     * 
+     * @param contentTypeSupportedByThisResult The content type to add. Eg. "application/xml"
+     * @return The result for chaining.
+     */
+    public Result supportedContentType(String contentTypeSupportedByThisResult) {
+        supportedContentTypes.add(contentTypeSupportedByThisResult);
+        return this;
+    }
+    
+    /**
+     * Will add the content types to the list of supported content types.
+     * 
+     * @param contentTypesSupportedByThisResult The content type to add. Eg. 
+     *        "application/xml", "applcation/json"
+     * @return The result for chaining.
+     */
+    public Result supportedContentTypes(String ... contentTypesSupportedByThisResult) {
+        supportedContentTypes.addAll(Arrays.asList(contentTypesSupportedByThisResult));
+        return this;
+    }
+    
+    /**
+     * Returns immutable list of supported content types by this request.
+     *
+     * @return immutable list of supported content types. Either the default
+         content types if no one has been set (html, json, xml) or the
+         content types set by the user and supportedContentType(...).
+     */
+    public List<String> supportedContentTypes() {
+        if (supportedContentTypes.isEmpty()) {
+            return DEFAULT_SUPPORTED_CONTENT_TYPES;
+        } else {
+            return ImmutableList.copyOf(supportedContentTypes);
+        }
+    }
+    
+    /**
+     * 
+     * @return The fallback content type. This will be the content type used
+     * when none of the supported content types matches the accept content
+     * type of the request.
+     */
+    public Optional<String> fallbackContentType() {
+        return fallbackContentType;
+    }
+    
+    /**
+     * 
+     * @param fallbackContentType The content type to use as fallback when
+     *                            neither contentType set and supportedContentTypes
+     *                            do not match request.
+     * @return This result for chaining.
+     */
+    public Result fallbackContentType(String fallbackContentType) {
+        this.fallbackContentType = Optional.of(fallbackContentType);
         return this;
     }
 
@@ -524,6 +679,16 @@ public class Result {
         return this;
     }
     
+    /**
+     * Set the content type of this result to {@link Result#TEXT_PLAIN}.
+     *
+     * @return the same result where you executed this method on. But the content type is now {@link Result#TEXT_PLAIN}.
+     */
+    public Result text() {
+        contentType = TEXT_PLAIN;
+        return this;
+    }
+
     /**
      * Set the content type of this result to {@link Result#APPLICATON_XML}.
      * 
