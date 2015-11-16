@@ -34,18 +34,18 @@ Mustache templates
 Jade4Ninja (Jade) templates
 
  * https://github.com/mysu/jade4ninja
+
+Rocker templates
+
+ * https://github.com/fizzed/ninja-rocker
  
-MongoDB support
+Hazelcast Cache Implementation
 
- * https://github.com/svenkubiak/ninja-mongodb
+ * https://github.com/raptaml/ninja-hazelcast-embedded
+ 
+MongoDB/Morphia Integration
 
-Quartz Scheduler support
-
- * https://github.com/svenkubiak/ninja-quartz
-
-Validation module
-
- * https://github.com/svenkubiak/ninja-validation
+ * https://github.com/bihe/ninja-mongodb
 
 <div class="alert alert-info">
 Please feel free to add your modules to this page as pull request 
