@@ -83,7 +83,13 @@ public class NinjaDefault implements Ninja {
         return ninjaProperties.isDev() && ninjaProperties.getBooleanWithDefault(NinjaConstant.DIAGNOSTICS_KEY_NAME, Boolean.TRUE);
     }
 
-    
+
+    @Override
+    public Result beforeControllerMethodInvoke(Context context) { return null; }
+
+    @Override
+    public Result afterControllerMethodInvoke(Result result, Context context) { return result; }
+
     @Override
     public void onRouteRequest(Context.Impl context) {
         

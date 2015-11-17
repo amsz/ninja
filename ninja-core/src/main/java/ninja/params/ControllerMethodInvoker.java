@@ -24,7 +24,10 @@ import java.lang.reflect.ParameterizedType;
 import java.util.ArrayList;
 import java.util.List;
 
+import jdk.nashorn.internal.ir.ObjectNode;
 import ninja.Context;
+import ninja.Ninja;
+import ninja.Result;
 import ninja.RoutingException;
 import ninja.params.ParamParsers.ArrayParamParser;
 import ninja.validation.Validator;
@@ -39,6 +42,7 @@ import com.google.inject.Injector;
  * @author James Roper
  */
 public class ControllerMethodInvoker {
+    private Ninja ninja;
     private final Method method;
     private final ArgumentExtractor<?>[] argumentExtractors;
 
@@ -54,7 +58,12 @@ public class ControllerMethodInvoker {
             arguments[i] = argumentExtractors[i].extract(context);
         }
         try {
-            return method.invoke(controller, arguments);
+            Object result = ninja.beforeControllerMethodInvoke(context);
+            if(result == null) {
+                result = method.invoke(controller, arguments);
+                result = ninja.afterControllerMethodInvoke((Result) result, context);
+            }
+            return result;
         } catch (IllegalAccessException e) {
             throw new RuntimeException(e);
         } catch (IllegalArgumentException e) {
@@ -112,7 +121,9 @@ public class ControllerMethodInvoker {
                     argumentExtractors[i]);
         }
 
-        return new ControllerMethodInvoker(method, argumentExtractors);
+        ControllerMethodInvoker invoker = new ControllerMethodInvoker(method, argumentExtractors);
+        invoker.ninja = injector.getInstance(Ninja.class);
+        return invoker;
     }
 
     private static ArgumentExtractor<?> getArgumentExtractor(Class<?> paramType,

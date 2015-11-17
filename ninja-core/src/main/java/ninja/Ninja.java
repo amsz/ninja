@@ -18,6 +18,9 @@ package ninja;
 
 public interface Ninja {
 
+    Result beforeControllerMethodInvoke(Context context);
+    Result afterControllerMethodInvoke(Result result, Context context);
+
 	/**
 	 * When a route is requested this method is called.
 	 */
