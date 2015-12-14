@@ -1,6 +1,8 @@
-Version X.X.X
+Version 5.2.2
 =============
 
+ * 2015-11-21 Bump to slf4j 1.7.13 (ra)
+ * 2015-11-13 Fixed garbled parameters in multipart requests (mallowlabs)
  * 2015-10-18 Added Session.setExpiryTime() to control session expiry (watsonmw)
  * 2015-10-18 OptionalBinder for ObjectMapper and XmlMapper, so that users can easily override
               the default types for both of them. (amit2103/jjlauer)
